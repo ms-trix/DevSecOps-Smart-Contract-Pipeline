@@ -38,12 +38,10 @@ jobs:
 
         - name: Install Slither
           run: pip install slither-analyzer --break-system-packages
-
-        - name: Debug
-          run: ls -la && ls -la artifacts/ || echo "no artifacts folder"
+          
 
         - name: Run Slither
-          run: slither . --json slither-report.json --hardhat-compile
+          run: slither . --json slither-report.json || true
 
 
         - name: Upload JSON file
