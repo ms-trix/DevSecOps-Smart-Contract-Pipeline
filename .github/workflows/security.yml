@@ -40,7 +40,7 @@ jobs:
           run: pip install slither-analyzer --break-system-packages
 
         - name: Run Slither
-          run: slither . --json slither-report.json --hardhat-compile || true
+          run: slither . --json slither-report.json --hardhat-compile
 
 
         - name: Upload JSON file
