@@ -41,7 +41,10 @@ jobs:
           
 
         - name: Run Slither
-          run: slither . --json slither-report.json || true
+          run: slither . --json slither-report.json 2>&1 | tee slither-output.log || true
+
+        - name: Print Slither output
+          run: cat slither-output.log || echo "no log file"
 
 
         - name: Upload JSON file
