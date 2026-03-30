@@ -8,11 +8,13 @@ const config: HardhatUserConfig = {
     version: "0.8.28",
   },
   networks: {
-    sepolia: {
-      type: "http",
-      url: process.env.SEPOLIA_RPC_URL || "",
-      accounts: process.env.METAMASK_API ? [process.env.METAMASK_API] : [],
-    },
+    ...(process.env.SEPOLIA_RPC_URL ? {
+      sepolia: {
+        type: "http",
+        url: process.env.SEPOLIA_RPC_URL,
+        accounts: process.env.METAMASK_API ? [process.env.METAMASK_API] : [],
+      },
+    } : {}),
   },
 };
 
