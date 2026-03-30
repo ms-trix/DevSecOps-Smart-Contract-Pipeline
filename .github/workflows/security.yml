@@ -1,0 +1,105 @@
+name: CI
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    security-analysis:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Set up Node.js
+          uses: actions/setup-node@v4
+          with:
+                node-version: "22"
+
+        - name: Cache code
+          uses: actions/cache@v4
+          env:
+            cache-name: cache-node-modules
+          with:
+            path: ~/.npm
+            key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+
+        - name: Install dependencies
+          run: npm install
+
+        - name: Hardhat compile
+          run: npx hardhat compile
+
+        - name: Setup python
+          uses: actions/setup-python@v5
+          with:
+            python-version: "3.11"
+
+        - name: Install Slither
+          run: pip install slither-analyzer --break-system-packages
+          
+
+        - name: Run Slither
+          run: slither contracts/ --json slither-report.json || true
+
+
+
+        - name: Upload JSON file
+          uses: actions/upload-artifact@v4
+          with:
+            name: 'artifact'
+            path: slither-report.json
+
+        - name: check for vulnerabilities
+          run: |
+            python3 -c "
+            import json, sys
+            import os
+            if not os.path.exists('slither-report.json'):
+                print('ERROR: slither-report.json not found - Slither may have crashed')
+                sys.exit(1)
+            with open('slither-report.json') as f:
+                report = json.load(f)
+            detectors = report.get('results', {}).get('detectors', [])
+            high = [d for d in detectors if d.get('impact') in ['High', 'Critical']]
+            if high:
+                print(f'FAILED: {len(high)} high/critical vulnerabilities found')
+                for v in high:
+                    print(f'  - {v[\"check\"]}: {v[\"description\"][:80]}')
+                sys.exit(1)
+            print('PASSED: No high severity vulnerabilities found')
+            "
+
+    deploy:
+      needs: security-analysis
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main'}}
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Install Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: "22"
+
+        - name: Cache code
+          uses: actions/cache@v4
+          env:
+            cache-name: cache-node-modules
+          with:
+            path: ~/.npm
+            key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+
+
+        - name: Install dependencies
+          run: npm install
+
+
+        - name: Deploy to Sepolia
+          run: npx hardhat run scripts/deploy.js --network sepolia
+          env:
+            SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+            METAMASK_API: ${{ secrets.METAMASK_API }}
+
