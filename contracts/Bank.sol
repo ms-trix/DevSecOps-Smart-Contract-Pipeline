@@ -11,12 +11,10 @@ contract Bank {
     function withdraw(uint256 amount) public {
         require(balances[msg.sender] >= amount, "Not enough balance");
 
+        balances[msg.sender] -= amount;
+
         (bool success, ) = msg.sender.call{value: amount}("");
         require(success, "Transfer failed");
-
-        unchecked {
-            balances[msg.sender] -= amount;
-        }
     }
 
     receive() external payable {}
