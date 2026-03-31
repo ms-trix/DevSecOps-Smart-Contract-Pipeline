@@ -44,7 +44,7 @@ jobs:
           run: slither contracts/basic/ --json slither-basic.json || true
 
         - name: Run Slither on advanced
-          run: slither contracts/advanced/ --json slither-advanced.json || true
+          run: slither contracts/advanced/ --json slither-advanced.json --solc-remaps "@openzeppelin/=node_modules/@openzeppelin/" || true
 
         - name: Merge Slither reports
           run:  |
