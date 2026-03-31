@@ -5,6 +5,7 @@ const contracts = [
     { artifact: "contracts/basic/Bank.sol:Bank", name: "Bank" },
     { artifact: "contracts/basic/Vault.sol:Vault", name: "Vault" },
     { artifact: "contracts/basic/TxOriginWallet.sol:TxOriginWallet", name: "TxOriginWallet" },
+    {artifact: "contracts/advanced/SignatureReplay.sol:SignatureReplay",name: "SignatureReplay"},
 ];
 
 async function main() {
