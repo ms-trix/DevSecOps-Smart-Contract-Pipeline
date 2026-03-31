@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.28;
 
 contract Vault {
-    mapping(address => uint256 ) public balances;
+    mapping(address => uint256) public balances;
     address public owner;
 
     constructor() {
@@ -13,9 +13,9 @@ contract Vault {
         balances[msg.sender] += msg.value;
     }
 
-
     function withdrawAll() public {
         require(msg.sender == owner, "Not the owner");
-        payable(msg.sender).transfer(address(this).balance);
+        (bool success, ) = msg.sender.call{value: address(this).balance}("");
+        require(success, "Transfer failed");
     }
 }

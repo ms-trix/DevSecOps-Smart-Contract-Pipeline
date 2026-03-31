@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.28;
 
 // VULNERABLE: This contract intentionally contains an access control vulnerability
 // for educational purposes. DO NOT deploy to mainnet.
