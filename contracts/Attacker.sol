@@ -38,6 +38,7 @@ contract Attacker {
 
     function withdrawFunds() external {
         require(msg.sender == owner, "Not the owner");
-        payable(owner).transfer(address(this).balance);
+        (bool success, ) = payable(owner).call{value: address(this).balance}("");
+        require(success, "Transfer failed");
     }
 }
