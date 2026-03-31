@@ -38,7 +38,10 @@ jobs:
 
         - name: Install Slither
           run: pip install slither-analyzer --break-system-packages
-          
+
+          # Fast security gate - runs on every push (seconds)
+          # For deep symbolic execution analysis run manually:
+          # python3 scripts/deep-audit.py <contract_path> --timeout 60 --depth 10
 
         - name: Run Slither on basic
           run: slither contracts/basic/ --json slither-basic.json || true
