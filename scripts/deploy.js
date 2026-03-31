@@ -2,9 +2,9 @@ import { ethers } from "ethers";
 import hre from "hardhat";
 
 const contracts = [
-    { artifact: "contracts/Bank.sol:Bank", name: "Bank" },
-    { artifact: "contracts/Vault.sol:Vault", name: "Vault" },
-    { artifact: "contracts/TxOriginWallet.sol:TxOriginWallet", name: "TxOriginWallet" },
+    { artifact: "contracts/basic/Bank.sol:Bank", name: "Bank" },
+    { artifact: "contracts/basic/Vault.sol:Vault", name: "Vault" },
+    { artifact: "contracts/basic/TxOriginWallet.sol:TxOriginWallet", name: "TxOriginWallet" },
 ];
 
 async function main() {
