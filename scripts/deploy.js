@@ -4,6 +4,7 @@ import hre from "hardhat";
 const contracts = [
     { artifact: "contracts/Bank.sol:Bank", name: "Bank" },
     { artifact: "contracts/Vault.sol:Vault", name: "Vault" },
+    { artifact: "contracts/TxOriginWallet.sol:TxOriginWallet", name: "TxOriginWallet" },
 ];
 
 async function main() {
