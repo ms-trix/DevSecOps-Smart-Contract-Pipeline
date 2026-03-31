@@ -26,3 +26,5 @@ typechain-types/
 .env.*
 .env
 .idea/
+.venv/
+venv/

@@ -1,0 +1,2 @@
+[slither_analyzer.plugin]
+slither-detectors = slither_detectors:make_plugin

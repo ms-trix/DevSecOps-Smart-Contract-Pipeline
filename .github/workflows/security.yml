@@ -46,6 +46,11 @@ jobs:
         - name: Run Slither on advanced
           run: slither contracts/advanced/ --json slither-advanced.json --solc-remaps "@openzeppelin/=node_modules/@openzeppelin/" || true
 
+        - name: Run custom unprotected initializer detector
+          run: |
+            python3 slither_detectors/run_detector.py contracts/exploits/ProxyImplementation.sol || true
+            python3 slither_detectors/run_detector.py contracts/advanced/SecureProxy.sol || true
+
         - name: Merge Slither reports
           run:  |
                 python3 -c "

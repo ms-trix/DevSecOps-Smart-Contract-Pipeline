@@ -1,0 +1,8 @@
+setup.py
+slither_detectors/__init__.py
+slither_detectors/unprotected_initializer.py
+slither_detectors.egg-info/PKG-INFO
+slither_detectors.egg-info/SOURCES.txt
+slither_detectors.egg-info/dependency_links.txt
+slither_detectors.egg-info/entry_points.txt
+slither_detectors.egg-info/top_level.txt
