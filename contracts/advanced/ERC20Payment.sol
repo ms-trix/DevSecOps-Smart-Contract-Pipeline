@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract ERC20Payment {
     using SafeERC20 for IERC20;
 
-    IERC20 public token;
+    IERC20 public immutable token;
     mapping(address => uint256) public balances;
 
     constructor(address tokenAddress) {
