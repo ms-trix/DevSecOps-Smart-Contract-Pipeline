@@ -6,7 +6,7 @@ pragma solidity ^0.8.28;
 // Vulnerability: State is updated AFTER the external call (violates CEI pattern)
 // Fix: Move balances[msg.sender] -= amount to BEFORE the external call
 
-contract Bank {
+contract BankVulnerable {
     mapping(address => uint256) public balances;
 
     function deposit() public payable {
