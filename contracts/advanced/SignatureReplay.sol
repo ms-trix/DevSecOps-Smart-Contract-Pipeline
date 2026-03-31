@@ -5,7 +5,7 @@ contract SignatureReplay {
     mapping(address => uint256) public balances;
     mapping(address => uint256) public nonces;
 
-    bytes32 public DOMAIN_SEPARATOR;
+    bytes32 public immutable DOMAIN_SEPARATOR;
 
     bytes32 public constant PAYMENT_TYPEHASH = keccak256(
         "Payment(address recipient,uint256 amount,uint256 nonce)"
@@ -23,6 +23,16 @@ contract SignatureReplay {
 
     function deposit() public payable {
         balances[msg.sender] += msg.value;
+    }
+
+    function withdraw() public  {
+        uint256 amount = balances[msg.sender];
+        require(amount > 0, "No balance");
+
+        balances[msg.sender] = 0;
+
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
     }
 
     function executePayment(
