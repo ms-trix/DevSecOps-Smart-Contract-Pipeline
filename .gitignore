@@ -28,3 +28,4 @@ typechain-types/
 .idea/
 .venv/
 venv/
+audit-reports/*.json
