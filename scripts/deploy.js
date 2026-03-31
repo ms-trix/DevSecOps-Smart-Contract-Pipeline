@@ -59,6 +59,30 @@ async function main() {
     await erc20Payment.waitForDeployment();
     const erc20PaymentAddress = await erc20Payment.getAddress();
     console.log("ERC20Payment deployed to:", erc20PaymentAddress);
+
+    // Deploy ProxyImplementation first — no constructor arguments needed
+    const implArtifact = await hre.artifacts.readArtifact("contracts/exploits/ProxyImplementation.sol:ProxyImplementation");
+    const implFactory = new ethers.ContractFactory(
+        implArtifact.abi,
+        implArtifact.bytecode,
+        deployer
+    );
+    const proxyImpl = await implFactory.deploy();
+    await proxyImpl.waitForDeployment();
+    const proxyImplAddress = await proxyImpl.getAddress();
+    console.log("ProxyImplementation deployed to:", proxyImplAddress);
+
+    // Deploy SecureProxy passing ProxyImplementation address as constructor argument
+    const secureProxyArtifact = await hre.artifacts.readArtifact("contracts/advanced/SecureProxy.sol:SecureProxy");
+    const secureProxyFactory = new ethers.ContractFactory(
+        secureProxyArtifact.abi,
+        secureProxyArtifact.bytecode,
+        deployer
+    );
+    const secureProxy = await secureProxyFactory.deploy(proxyImplAddress);
+    await secureProxy.waitForDeployment();
+    const secureProxyAddress = await secureProxy.getAddress();
+    console.log("SecureProxy deployed to:", secureProxyAddress);
 }
 
 main().catch((error) => {
