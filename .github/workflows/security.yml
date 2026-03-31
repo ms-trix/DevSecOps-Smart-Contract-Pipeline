@@ -40,10 +40,26 @@ jobs:
           run: pip install slither-analyzer --break-system-packages
           
 
-        - name: Run Slither
-          run: slither contracts/basic/ --json slither-report.json || true
+        - name: Run Slither on basic
+          run: slither contracts/basic/ --json slither-basic.json || true
 
+        - name: Run Slither on advanced
+          run: slither contracts/advanced/ --json slither-advanced.json || true
 
+        - name: Merge Slither reports
+          run:  |
+                python3 -c "
+                import json, os
+                results = {'results': {'detectors': []}}
+                for f in ['slither-basic.json', 'slither-advanced.json']:
+                    if os.path.exists(f):
+                        with open(f) as fp:
+                            data = json.load(fp)
+                        detectors = data.get('results', {}).get('detectors', [])
+                        results['results']['detectors'].extend(detectors)
+                with open('slither-report.json', 'w') as fp:
+                    json.dump(results, fp)
+                "
 
         - name: Upload JSON file
           uses: actions/upload-artifact@v4
