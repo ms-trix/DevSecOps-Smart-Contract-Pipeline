@@ -3,9 +3,8 @@ pragma solidity ^0.8.28;
 
 // VULNERABLE: This contract intentionally contains a tx.origin authentication vulnerability
 // for educational purposes. DO NOT deploy to mainnet.
-// Vulnerability: transfer() uses tx.origin for authentication instead of msg.sender
+// Vulnerability: withdraw() uses tx.origin for authentication instead of msg.sender
 // Fix: Replace tx.origin with msg.sender in the require check
-
 
 contract TxOriginVulnerable {
     address public owner;
@@ -14,7 +13,7 @@ contract TxOriginVulnerable {
         owner = msg.sender;
     }
 
-    receive() external payable{
+    receive() external payable {
     }
 
     // VULNERABILITY: tx.origin can be spoofed by a malicious intermediate contract
@@ -23,5 +22,4 @@ contract TxOriginVulnerable {
         (bool success, ) = destination.call{value: amount}("");
         require(success, "Transfer failed");
     }
-
 }
