@@ -1,6 +1,11 @@
 import { ethers } from "ethers";
 import hre from "hardhat";
 
+const contracts = [
+    { artifact: "contracts/Bank.sol:Bank", name: "Bank" },
+    { artifact: "contracts/Vault.sol:Vault", name: "Vault" },
+];
+
 async function main() {
     const url = process.env.SEPOLIA_RPC_URL ?? "http://127.0.0.1:8545";
     const provider = new ethers.JsonRpcProvider(url);
@@ -14,18 +19,20 @@ async function main() {
 
     console.log("Deploying with:", await deployer.getAddress());
 
-    const BankArtifact = await hre.artifacts.readArtifact("Bank");
-    const BankFactory = new ethers.ContractFactory(
-        BankArtifact.abi,
-        BankArtifact.bytecode,
-        deployer
-    );
+    for (const contract of contracts) {
+        const artifact = await hre.artifacts.readArtifact(contract.artifact);
+        const factory = new ethers.ContractFactory(
+            artifact.abi,
+            artifact.bytecode,
+            deployer
+        );
 
-    const bank = await BankFactory.deploy();
-    await bank.waitForDeployment();
+        const deployed = await factory.deploy();
+        await deployed.waitForDeployment();
 
-    const bankAddress = await bank.getAddress();
-    console.log("Bank deployed to:", bankAddress);
+        const address = await deployed.getAddress();
+        console.log(`${contract.name} deployed to:`, address);
+    }
 }
 
 main().catch((error) => {
