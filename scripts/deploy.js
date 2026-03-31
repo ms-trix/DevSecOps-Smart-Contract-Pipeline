@@ -2,8 +2,7 @@ import { ethers } from "ethers";
 import hre from "hardhat";
 
 async function main() {
-    const networkConfig = hre.network.config;
-    const url = networkConfig.url ?? "http://127.0.0.1:8545";
+    const url = process.env.SEPOLIA_RPC_URL ?? "http://127.0.0.1:8545";
     const provider = new ethers.JsonRpcProvider(url);
 
     let deployer;
