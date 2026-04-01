@@ -267,7 +267,7 @@ jobs:
               try:
                   response = requests.post(url, json=payload, headers=api_headers, timeout=90)
                   if response.status_code == 429:
-                      wait_time = 60 * (attempt + 1)
+                      wait_time = 120 * (attempt + 1)
                       print('Rate limited. Waiting ' + str(wait_time) + ' seconds before retry ' + str(attempt + 1) + '/3...')
                       time.sleep(wait_time)
                       continue
