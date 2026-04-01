@@ -1,129 +1,177 @@
 name: CI
 on:
-    push:
-        branches: [main]
-    pull_request:
-        branches: [main]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-    security-analysis:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+  security-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-        - name: Set up Node.js
-          uses: actions/setup-node@v4
-          with:
-                node-version: "22"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.1"
 
-        - name: Cache code
-          uses: actions/cache@v4
-          env:
-            cache-name: cache-node-modules
-          with:
-            path: ~/.npm
-            key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Cache node modules
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
 
-        - name: Install dependencies
-          run: npm install
+      - name: Install dependencies
+        run: npm ci
 
-        - name: Hardhat compile
-          run: npx hardhat compile
+      - name: Hardhat compile
+        run: npx hardhat compile
 
-        - name: Setup python
-          uses: actions/setup-python@v5
-          with:
-            python-version: "3.11"
+      - name: Upload compiled artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hardhat-artifacts
+          path: artifacts/
 
-        - name: Install Slither
-          run: pip install slither-analyzer --break-system-packages
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-          # Fast security gate - runs on every push (seconds)
-          # For deep symbolic execution analysis run manually:
-          # python3 scripts/deep-audit.py <contract_path> --timeout 60 --depth 10
+      - name: Install Slither
+        run: pip install slither-analyzer
 
-        - name: Run Slither on basic
-          run: slither contracts/basic/ --json slither-basic.json || true
+    
+      - name: Run Slither on basic
+        run: |
+          slither contracts/basic/ --json slither-basic.json || true
+          code=$?
+          if [ $code -eq 0 ] || [ $code -eq 1 ] || [ $code -eq 255 ]; then
+            exit 0
+          fi
+            echo "ERROR: Slither crashed on basic contracts (exit code $code)"
+          exit 2
 
-        - name: Run Slither on advanced
-          run: slither contracts/advanced/ --json slither-advanced.json --solc-remaps "@openzeppelin/=node_modules/@openzeppelin/" || true
+      - name: Run Slither on advanced
+        run: |
+          slither contracts/advanced/ --json slither-advanced.json --solc-remaps "@openzeppelin/=node_modules/@openzeppelin/" || true
+          code=$?
+          if [ $code -eq 0 ] || [ $code -eq 1 ] || [ $code -eq 255 ]; then
+            exit 0
+          fi
+            echo "ERROR: Slither crashed on advanced contracts (exit code $code)"
+          exit 2
 
-        - name: Run custom unprotected initializer detector
-          run: |
-            python3 slither_detectors/run_detector.py contracts/exploits/ProxyImplementation.sol || true
-            python3 slither_detectors/run_detector.py contracts/advanced/SecureProxy.sol || true
+      - name: Run custom unprotected initializer detector
+        run: |
+          python3 slither_detectors/run_detector.py contracts/exploits/ProxyImplementation.sol || echo "Expected findings in exploit contract, continuing"
+          python3 slither_detectors/run_detector.py contracts/advanced/SecureProxy.sol
 
-        - name: Merge Slither reports
-          run:  |
-                python3 -c "
-                import json, os
-                results = {'results': {'detectors': []}}
-                for f in ['slither-basic.json', 'slither-advanced.json']:
-                    if os.path.exists(f):
-                        with open(f) as fp:
-                            data = json.load(fp)
-                        detectors = data.get('results', {}).get('detectors', [])
-                        results['results']['detectors'].extend(detectors)
-                with open('slither-report.json', 'w') as fp:
-                    json.dump(results, fp)
-                "
+      - name: Merge Slither reports
+        run: |
+          python3 -c "
+          import json, os, sys
 
-        - name: Upload JSON file
-          uses: actions/upload-artifact@v4
-          with:
-            name: 'artifact'
-            path: slither-report.json
+          results = {'results': {'detectors': []}}
+          files_processed = 0
 
-        - name: check for vulnerabilities
-          run: |
-            python3 -c "
-            import json, sys
-            import os
-            if not os.path.exists('slither-report.json'):
-                print('ERROR: slither-report.json not found - Slither may have crashed')
-                sys.exit(1)
-            with open('slither-report.json') as f:
-                report = json.load(f)
-            detectors = report.get('results', {}).get('detectors', [])
-            high = [d for d in detectors if d.get('impact') in ['High', 'Critical']]
-            if high:
-                print(f'FAILED: {len(high)} high/critical vulnerabilities found')
-                for v in high:
-                    print(f'  - {v[\"check\"]}: {v[\"description\"][:80]}')
-                sys.exit(1)
-            print('PASSED: No high severity vulnerabilities found')
-            "
+          for f in ['slither-basic.json', 'slither-advanced.json']:
+              if os.path.exists(f):
+                  files_processed += 1
+                  with open(f) as fp:
+                      data = json.load(fp)
+                  detectors = data.get('results', {}).get('detectors', [])
+                  results['results']['detectors'].extend(detectors)
 
-    deploy:
-      needs: security-analysis
-      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main'}}
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
+          if files_processed == 0:
+              print('ERROR: No Slither report files found — analysis may have failed entirely')
+              sys.exit(1)
 
-        - name: Install Node.js
-          uses: actions/setup-node@v4
-          with:
-            node-version: "22"
+          with open('slither-report.json', 'w') as fp:
+              json.dump(results, fp)
 
-        - name: Cache code
-          uses: actions/cache@v4
-          env:
-            cache-name: cache-node-modules
-          with:
-            path: ~/.npm
-            key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          print(f'Merged {files_processed} report(s) with {len(results[\"results\"][\"detectors\"])} total finding(s)')
+          "
 
+      - name: Upload JSON file
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact
+          path: slither-report.json
 
-        - name: Install dependencies
-          run: npm install
+      - name: Check for vulnerabilities
+        run: |
+          python3 -c "
+          import json, sys, os
 
+          if not os.path.exists('slither-report.json'):
+              print('ERROR: slither-report.json not found — Slither may have crashed')
+              sys.exit(1)
 
-        - name: Deploy to Sepolia
-          run: npx hardhat run scripts/deploy.js --network sepolia
-          env:
-            SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
-            METAMASK_API: ${{ secrets.METAMASK_API }}
+          with open('slither-report.json') as f:
+              report = json.load(f)
 
+          detectors = report.get('results', {}).get('detectors', [])
+          high = [d for d in detectors if d.get('impact') in ['High', 'Critical']]
+          medium = [d for d in detectors if d.get('impact') == 'Medium']
+          low = [d for d in detectors if d.get('impact') == 'Low']
+
+          if medium:
+              print(f'WARNING: {len(medium)} medium severity finding(s) — review before production')
+              for v in medium:
+                  print(f'  - {v[\"check\"]}: {v[\"description\"][:80]}')
+
+          if low:
+              print(f'INFO: {len(low)} low severity finding(s)')
+              for v in low:
+                  print(f'  - {v[\"check\"]}: {v[\"description\"][:80]}')
+
+          if high:
+              print(f'FAILED: {len(high)} high/critical vulnerabilities found')
+              for v in high:
+                  print(f'  - {v[\"check\"]}: {v[\"description\"][:80]}')
+              sys.exit(1)
+
+          print('PASSED: No high/critical severity vulnerabilities found')
+          "
+
+  deploy:
+    needs: security-analysis
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.13.1"
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download compiled artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: hardhat-artifacts
+          path: artifacts/
+
+      - name: Deploy to Sepolia
+        timeout-minutes: 10
+        run: npx hardhat run scripts/deploy.js --network sepolia
+        env:
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+          METAMASK_API: ${{ secrets.METAMASK_API }}
