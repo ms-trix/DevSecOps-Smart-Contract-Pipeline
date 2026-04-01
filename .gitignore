@@ -28,4 +28,7 @@ typechain-types/
 .idea/
 .venv/
 venv/
-audit-reports/*.json
+audit-reports/*.json.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
