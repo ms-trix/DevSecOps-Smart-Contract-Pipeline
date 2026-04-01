@@ -8,6 +8,9 @@ on:
 jobs:
   security-analysis:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -138,6 +141,58 @@ jobs:
 
           print('PASSED: No high/critical severity vulnerabilities found')
           "
+
+
+      - name: Configure AWS credentials
+        if: always()
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-north-1
+
+
+      - name: Upload reports to S3
+        if: always()
+        run: |
+          TIMESTAMP=$(date +%Y-%m-%dT%H-%M-%S)
+          RUN_ID=${{ github.run_id }}
+          BRANCH=$(echo "${{ github.ref_name }}" | tr '/' '-')
+          
+          # Upload Slither report to S3
+          if [ -f slither-report.json ]; then
+            aws s3 cp slither-report.json \
+              s3://devsecops-smart-contract-reports-358344803500/pipeline-runs/${BRANCH}/${RUN_ID}/${TIMESTAMP}-slither-report.json
+            echo "Uploaded slither-report.json to S3"
+          fi
+          
+          # Determine pipeline result
+          STATUS=$(python3 -c "
+          import json, sys
+          try:
+              with open('slither-report.json') as f:
+                  report = json.load(f)
+              detectors = report.get('results', {}).get('detectors', [])
+              high = [d for d in detectors if d.get('impact') in ['High', 'Critical']]
+              print('FAILED' if high else 'PASSED')
+          except:
+              print('FAILED')
+          ")
+          
+          echo "Pipeline status: $STATUS"
+          
+          # Create log stream if it doesn't exist
+          aws logs create-log-stream \
+            --log-group-name /devsecops/pipeline \
+            --log-stream-name security-analysis-${BRANCH} \
+            --region eu-north-1 2>/dev/null || true
+          
+          # Push log event to CloudWatch
+          TIMESTAMP_MS=$(date +%s%3N)
+          aws logs put-log-events \
+            --log-group-name /devsecops/pipeline \
+            --log-stream-name security-analysis-${BRANCH} \
+            --log-events "[{\"timestamp\":${TIMESTAMP_MS},\"message\":\"${STATUS} branch=${BRANCH} run=${RUN_ID}\"}]" \
+            --region eu-north-1 || echo "CloudWatch push failed non-critically"
 
   deploy:
     needs: security-analysis

@@ -21,6 +21,7 @@ jobs:
       pull-requests: write
       actions: read
       contents: read
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -326,6 +327,37 @@ jobs:
         with:
           name: ai-remediation-report
           path: ai-report.md
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-north-1
+
+      - name: Upload AI report to S3
+        if: steps.extract.outputs.has_high_findings == 'true' && steps.claude.outcome == 'success'
+        run: |
+            TIMESTAMP=$(date +%Y-%m-%dT%H-%M-%S)
+            RUN_ID=${{ github.event.workflow_run.id }}
+            BRANCH=$(echo "${{ github.event.workflow_run.head_branch }}" | tr '/' '-')
+            
+            aws s3 cp ai-report.md \
+              s3://devsecops-smart-contract-reports-358344803500/ai-reports/${BRANCH}/${RUN_ID}/${TIMESTAMP}-ai-remediation-report.md
+            echo "Uploaded ai-report.md to S3"
+            
+            # Push AI remediation success log to CloudWatch
+            aws logs create-log-stream \
+              --log-group-name /devsecops/pipeline \
+              --log-stream-name ai-remediation-${BRANCH} \
+              --region eu-north-1 2>/dev/null || true
+            
+            TIMESTAMP_MS=$(date +%s%3N)
+            aws logs put-log-events \
+              --log-group-name /devsecops/pipeline \
+              --log-stream-name ai-remediation-${BRANCH} \
+              --log-events "[{\"timestamp\":${TIMESTAMP_MS},\"message\":\"AI remediation report generated successfully branch=${BRANCH} run=${RUN_ID}\"}]" \
+              --region eu-north-1 || echo "CloudWatch push failed non-critically"
+
 
       - name: Post PR comment
         if: steps.extract.outputs.has_high_findings == 'true' && steps.claude.outcome == 'success'
