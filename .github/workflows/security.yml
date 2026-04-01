@@ -45,25 +45,26 @@ jobs:
       - name: Install Slither
         run: pip install slither-analyzer
 
+    
       - name: Run Slither on basic
         run: |
           slither contracts/basic/ --json slither-basic.json
           code=$?
-          if [ $code -eq 2 ]; then
-            echo "ERROR: Slither crashed on basic contracts"
-            exit 2
+          if [ $code -eq 0 ] || [ $code -eq 1 ] || [ $code -eq 255 ]; then
+            exit 0
           fi
-          exit 0
+            echo "ERROR: Slither crashed on basic contracts (exit code $code)"
+          exit 2
 
       - name: Run Slither on advanced
         run: |
           slither contracts/advanced/ --json slither-advanced.json --solc-remaps "@openzeppelin/=node_modules/@openzeppelin/"
           code=$?
-          if [ $code -eq 2 ]; then
-            echo "ERROR: Slither crashed on advanced contracts"
-            exit 2
+          if [ $code -eq 0 ] || [ $code -eq 1 ] || [ $code -eq 255 ]; then
+            exit 0
           fi
-          exit 0
+            echo "ERROR: Slither crashed on advanced contracts (exit code $code)"
+          exit 2
 
       - name: Run custom unprotected initializer detector
         run: |
