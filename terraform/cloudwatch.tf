@@ -50,3 +50,16 @@ resource "aws_cloudwatch_metric_alarm" "high_findings_alarm" {
     ManagedBy = "terraform"
   }
 }
+
+resource "aws_cloudwatch_log_metric_filter" "ai_remediation_success" {
+  name           = "AIRemediationSuccess"
+  log_group_name = aws_cloudwatch_log_group.pipeline.name
+  pattern        = "AI remediation report generated successfully"
+
+  metric_transformation {
+    name          = "AIRemediationSuccess"
+    namespace     = "DevSecOps/Pipeline"
+    value         = "1"
+    default_value = "0"
+  }
+}

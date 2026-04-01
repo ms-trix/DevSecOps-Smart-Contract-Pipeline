@@ -7,7 +7,7 @@ resource "aws_cloudwatch_dashboard" "pipeline" {
         type   = "metric"
         x      = 0
         y      = 0
-        width  = 12
+        width  = 8
         height = 6
         properties = {
           title   = "High Severity Findings"
@@ -22,9 +22,9 @@ resource "aws_cloudwatch_dashboard" "pipeline" {
       },
       {
         type   = "metric"
-        x      = 12
+        x      = 8
         y      = 0
-        width  = 12
+        width  = 8
         height = 6
         properties = {
           title   = "Pipeline Pass Rate"
@@ -34,6 +34,23 @@ resource "aws_cloudwatch_dashboard" "pipeline" {
           view    = "timeSeries"
           metrics = [
             ["DevSecOps/Pipeline", "PipelinePass"]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 16
+        y      = 0
+        width  = 8
+        height = 6
+        properties = {
+          title   = "AI Remediation Success"
+          region  = var.aws_region
+          period  = 300
+          stat    = "Sum"
+          view    = "timeSeries"
+          metrics = [
+            ["DevSecOps/Pipeline", "AIRemediationSuccess"]
           ]
         }
       }
