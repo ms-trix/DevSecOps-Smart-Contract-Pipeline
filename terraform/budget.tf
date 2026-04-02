@@ -21,3 +21,31 @@ resource "aws_budgets_budget" "monthly" {
     subscriber_email_addresses = ["mskrebe@gmail.com"]
   }
 }
+
+resource "aws_ce_anomaly_monitor" "overall" {
+  name              = "${var.project_name}-anomaly-monitor"
+  monitor_type      = "DIMENSIONAL"
+  monitor_dimension = "SERVICE"
+}
+
+resource "aws_ce_anomaly_subscription" "alert" {
+  name      = "${var.project_name}-anomaly-alert"
+  frequency = "DAILY"
+
+  monitor_arn_list = [
+    aws_ce_anomaly_monitor.overall.arn
+  ]
+
+  subscriber {
+    type    = "EMAIL"
+    address = "mskrebe@gmail.com"
+  }
+
+  threshold_expression {
+    dimension {
+      key           = "ANOMALY_TOTAL_IMPACT_ABSOLUTE"
+      values        = ["1"]
+      match_options = ["GREATER_THAN_OR_EQUAL"]
+    }
+  }
+}
