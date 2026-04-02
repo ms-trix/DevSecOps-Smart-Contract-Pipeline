@@ -1,0 +1,27 @@
+services:
+  slither:
+    build:
+      context: .
+      dockerfile: Dockerfile.slither
+    volumes:
+      - .:/app
+    command: contracts/basic/ --json /app/slither-report.json
+
+  slither-advanced:
+    build:
+      context: .
+      dockerfile: Dockerfile.slither
+    volumes:
+      - .:/app
+    command: >
+      contracts/advanced/
+      --json /app/slither-advanced.json
+      --solc-remaps @openzeppelin/=node_modules/@openzeppelin/
+
+  mythril:
+    build:
+      context: .
+      dockerfile: Dockerfile.mythril
+    volumes:
+      - .:/app
+    command: contracts/basic/Bank.sol --timeout 60 --depth 10

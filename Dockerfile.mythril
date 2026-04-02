@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install setuptools==69.5.1 mythril==0.24.7 --quiet
+
+COPY scripts/deep-audit.py ./scripts/deep-audit.py
+
+ENTRYPOINT ["python3", "scripts/deep-audit.py"]
+CMD ["--help"]
