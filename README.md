@@ -239,6 +239,48 @@ npx hardhat run scripts/deploy.js --network sepolia
 ```
 
 ---
+## Local Security Analysis with Docker
+
+Run the full security analysis stack locally without installing Python, Slither, or Mythril. Docker handles all dependencies.
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+### Build the containers
+```bash
+docker-compose build
+```
+
+### Run Slither on basic contracts
+```bash
+docker-compose run --rm slither
+```
+
+### Run Slither on advanced contracts
+```bash
+docker-compose run --rm slither-advanced
+```
+
+### Run Mythril deep audit
+```bash
+docker-compose run --rm mythril
+```
+
+To audit a different contract, override the command:
+```bash
+docker-compose run --rm mythril contracts/vulnerable/basic/BankVulnerable.sol --timeout 120 --depth 15
+```
+
+### What each container does
+
+| Container | Tool | Purpose |
+|---|---|---|
+| `slither` | Slither 0.11.5 | Static analysis on basic contracts with custom detector |
+| `slither-advanced` | Slither 0.11.5 | Static analysis on advanced contracts with OpenZeppelin remaps |
+| `mythril` | Mythril 0.24.7 | Symbolic execution deep audit via deep-audit.py |
+
+Reports are saved to `audit-reports/` in your project directory.
 
 ## GitHub Secrets Required
 
